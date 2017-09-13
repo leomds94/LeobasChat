@@ -1,0 +1,3 @@
+﻿$(function(){
+    $(".chat").niceScroll();
+})

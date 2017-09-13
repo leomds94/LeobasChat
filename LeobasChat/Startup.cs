@@ -33,6 +33,18 @@ namespace LeobasChat
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+            services.AddAuthentication()
+                    .AddFacebook(facebookOptions =>
+                    {
+                        facebookOptions.AppId = "1920849431488194";
+                        facebookOptions.AppSecret = "b3b5d6b37dc030dcd9c499574898dc31";
+                    })
+                    .AddGoogle(googleOptions =>
+                    {
+                        googleOptions.ClientId = "783686117780-upoka99nc2bfh787au2fch4ojf3jtqse.apps.googleusercontent.com";
+                        googleOptions.ClientSecret = "_oD2_6KXHrI3HXIWg9nJPjt1";
+                    });
+
             services.AddMvc()
                 .AddRazorPagesOptions(options =>
                 {
