@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.15
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeobasChat", "LeobasChat\LeobasChat.csproj", "{50BC0D34-169E-48FB-BF4F-97077C28A6CB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50BC0D34-169E-48FB-BF4F-97077C28A6CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50BC0D34-169E-48FB-BF4F-97077C28A6CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50BC0D34-169E-48FB-BF4F-97077C28A6CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50BC0D34-169E-48FB-BF4F-97077C28A6CB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F9106321-7227-4C10-92AE-97E62D2937E9}
+	EndGlobalSection
+EndGlobal
