@@ -22,7 +22,7 @@ namespace LeobasChat.Pages.Account
         {
             if (userId == null || code == null)
             {
-                return RedirectToPage("/Index");
+                return RedirectToPage("./Login");
             }
 
             var user = await _userManager.FindByIdAsync(userId);

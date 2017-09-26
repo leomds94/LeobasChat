@@ -7,11 +7,14 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
 
 namespace LeobasChat
 {
     public class Program
     {
+        public static Dictionary<int, TcpClient> clients = new Dictionary<int, TcpClient>();
+
         public static void Main(string[] args)
         {
             BuildWebHost(args).Run();
@@ -21,5 +24,6 @@ namespace LeobasChat
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
                 .Build();
+
     }
 }

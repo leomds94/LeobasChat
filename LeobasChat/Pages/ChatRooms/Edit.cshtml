@@ -1,0 +1,36 @@
+﻿@page "{id:int}"
+@model EditModel
+@{
+}
+@{
+    ViewData["Title"] = "Editar Chat";
+}
+
+<h1>Edit ChatRoom - @Model.ChatRoom.ChatRoomId</h1>
+
+<form method="post">
+    <div asp-validation-summary="All"></div>
+    <input asp-for="ChatRoom.ChatRoomId" type="hidden" />
+    <div>
+        <label asp-for="ChatRoom.Name"></label>
+        <div>
+            <input asp-for="ChatRoom.Name" />
+            <span asp-validation-for="ChatRoom.Name"></span>
+        </div>
+        <label asp-for="ChatRoom.IsPublic"></label>
+        <div>
+            <input asp-for="ChatRoom.IsPublic" />
+            <span asp-validation-for="ChatRoom.IsPublic"></span>
+        </div>
+        <label asp-for="ChatRoom.UserLimit"></label>
+        <div>
+            <input asp-for="ChatRoom.UserLimit" />
+            <span asp-validation-for="ChatRoom.UserLimit"></span>
+        </div>
+    </div>
+
+    <div>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+
+</form>

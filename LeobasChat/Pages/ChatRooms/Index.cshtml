@@ -1,0 +1,54 @@
+﻿@page
+@model IndexModel
+
+<h1>Salas de Chat</h1>
+
+<a asp-page="./Create">Criar Novo</a>
+
+<form method="post">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Pública</th>
+                <th>Limite de usuários</th>
+                @*<th>Usuários Online</th>*@
+                <th></th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ChatRoom in Model.ChatRooms)
+            {
+                <tr>
+                    <td>@ChatRoom.Name</td>
+                    <td>@ChatRoom.IsPublic</td>
+                    <td>@ChatRoom.UserLimit</td>
+                    @*<td>@ChatRoom.ChatUsers.Count</td>*@
+
+                    @if (Model.UserAdmin != null)
+                    {
+                        @if (Model.UserAdmin.IsAdmin == true)
+                        {
+                            <td>
+                                <a class="btn btn-primary" asp-page="./Edit" asp-route-id="@ChatRoom.ChatRoomId">Edit</a>
+                            </td>
+                            <td>
+                                <button class="btn btn-warning"
+                                        type="submit"
+                                        asp-page-handler="delete"
+                                        asp-route-id="@ChatRoom.ChatRoomId">
+                                    Deletar
+                                </button>
+                            </td>
+                        }
+                    }
+                    <td>
+                        <a class="btn btn-primary" asp-page="./Enter" asp-route-id="@ChatRoom.ChatRoomId">Entrar na sala</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</form>

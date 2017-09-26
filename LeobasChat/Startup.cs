@@ -1,16 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using LeobasChat.Data;
 using LeobasChat.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System;
+using LeobasChat.Pages.ChatRooms;
 
 namespace LeobasChat
 {
@@ -29,11 +27,37 @@ namespace LeobasChat
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
+            services.AddDbContext<ChatDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+
+
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
-            services.AddAuthentication()
+            services.Configure<IdentityOptions>(options =>
+            {
+                // Password settings
+                options.Password.RequireDigit = true;
+                options.Password.RequiredLength = 8;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = true;
+                options.Password.RequiredUniqueChars = 4;
+
+                // Lockout settings
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
+                options.Lockout.MaxFailedAccessAttempts = 10;
+                options.Lockout.AllowedForNewUsers = true;
+
+                // User settings
+                options.User.RequireUniqueEmail = true;
+            });
+
+            services.ConfigureApplicationCookie(options => options.LoginPath = "/Account/LogIn");
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                     .AddFacebook(facebookOptions =>
                     {
                         facebookOptions.AppId = "1920849431488194";
@@ -43,11 +67,17 @@ namespace LeobasChat
                     {
                         googleOptions.ClientId = "783686117780-upoka99nc2bfh787au2fch4ojf3jtqse.apps.googleusercontent.com";
                         googleOptions.ClientSecret = "_oD2_6KXHrI3HXIWg9nJPjt1";
+                    })
+                    .AddCookie(coockieOptions =>
+                    {
+                        coockieOptions.LoginPath = "/Account/LogIn";
+                        coockieOptions.LogoutPath = "/Account/LogOff";
                     });
 
             services.AddMvc()
                 .AddRazorPagesOptions(options =>
                 {
+                    options.Conventions.AddPageRoute("/ChatRooms/Index", "");
                     options.Conventions.AuthorizeFolder("/Account/Manage");
                     options.Conventions.AuthorizePage("/Account/Logout");
                 });
@@ -75,12 +105,7 @@ namespace LeobasChat
 
             app.UseAuthentication();
 
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller}/{action=Index}/{id?}");
-            });
+            app.UseMvc();
         }
     }
 }

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +6,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using LeobasChat.Data;
 using LeobasChat.Services;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Authentication;
+using System.Linq;
 
 namespace LeobasChat.Pages.Account
 {
@@ -34,29 +34,37 @@ namespace LeobasChat.Pages.Account
         [BindProperty]
         public InputModel Input { get; set; }
 
+        public IList<AuthenticationScheme> ExternalLogins { get; set; }
+
         public string ReturnUrl { get; set; }
 
         public class InputModel
         {
             [Required]
-            [EmailAddress]
+            [StringLength(100, ErrorMessage = "A {0} deve pelo menos {2} e no máximo {1} caracteres.", MinimumLength = 6)]
+            [Display(Name = "Nick")]
+            public string Username { get; set; }
+
+            [Required]
             [Display(Name = "Email")]
             public string Email { get; set; }
 
             [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "A {0} deve pelo menos {2} e no máximo {1} caracteres.", MinimumLength = 6)]
             [DataType(DataType.Password)]
-            [Display(Name = "Password")]
+            [Display(Name = "Senha")]
             public string Password { get; set; }
 
             [DataType(DataType.Password)]
-            [Display(Name = "Confirm password")]
-            [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+            [Display(Name = "Confirme sua senha")]
+            [Compare("Password", ErrorMessage = "A senha e a confirmação de senha não se correspondem.")]
             public string ConfirmPassword { get; set; }
         }
 
-        public void OnGet(string returnUrl = null)
+        public async Task OnGetAsync(string returnUrl = null)
         {
+            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
             ReturnUrl = returnUrl;
         }
 
@@ -65,7 +73,7 @@ namespace LeobasChat.Pages.Account
             ReturnUrl = returnUrl;
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = Input.Email, Email = Input.Email };
+                var user = new ApplicationUser { UserName = Input.Username, Email = Input.Email };
                 var result = await _userManager.CreateAsync(user, Input.Password);
                 if (result.Succeeded)
                 {

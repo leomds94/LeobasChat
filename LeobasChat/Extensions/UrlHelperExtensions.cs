@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Mvc
         {
             if (!urlHelper.IsLocalUrl(localUrl))
             {
-                return urlHelper.Page("/Index");
+                return urlHelper.Page("/ChatRooms/Index");
             }
 
             return localUrl;

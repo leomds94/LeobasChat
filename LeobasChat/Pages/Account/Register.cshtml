@@ -5,30 +5,68 @@
 }
 
 <h2>@ViewData["Title"]</h2>
-
 <div class="row">
     <div class="col-md-4">
-        <form asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <h4>Create a new account.</h4>
-            <hr />
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="Input.Email"></label>
-                <input asp-for="Input.Email" class="form-control" />
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
+        <section>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-4 col-md-offset-4">
+                        <div class="form-body">
+                            <ul class="nav nav-tabs final-login">
+                                <li><a asp-page="/Account/Login">Login</a></li>
+                                <li class="active"><a data-toggle="tab" href="#sectionB">Cadastre-se</a></li>
+                            </ul>
+                            <div class="tab-content">
+                                <div id="sectionB" class="tab-pane fade in active">
+                                    <div class="innter-form">
+                                        <form asp-route-returnUrl="@Model.ReturnUrl" class="sa-innate-form" method="post">
+                                            <div asp-validation-summary="All" class="text-danger"></div>
+                                            <div class="form-group">
+                                                <label asp-for="Input.Username">Name</label>
+                                                <input asp-for="Input.Username" placeholder="Nick">
+                                                <span asp-validation-for="Input.Username" class="text-danger"></span>
+                                            </div>
+                                            <div class="form-group">
+                                                <label asp-for="Input.Email">Name</label>
+                                                <input asp-for="Input.Email" type="email" placeholder="E-mail">
+                                                <span asp-validation-for="Input.Email" class="text-danger"></span>
+                                            </div>
+                                            <div class="form-group">
+                                                <label asp-for="Input.Password"></label>
+                                                <input asp-for="Input.Password" placeholder="Senha">
+                                                <span asp-validation-for="Input.Password" class="text-danger"></span>
+                                            </div>
+                                            <div class="form-group">
+                                                <label asp-for="Input.ConfirmPassword"></label>
+                                                <input asp-for="Input.ConfirmPassword" placeholder="Confirme sua senha">
+                                                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                                            </div>
+                                            <button type="submit">Cadastrar</button>
+                                        </form>
+                                    </div>
+                                    @*@if ((Model.ExternalLogins?.Count ?? 0) != 0)
+                                    {
+                                    <form asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+                                        <div class="social-login">
+                                            <p>- - - - - - - - - - - - - Register With - - - - - - - - - - - - - </p>
+                                            <ul>
+                                                @foreach (var provider in Model.ExternalLogins)
+                                                {
+                                                    <li><a href="#" class="@("fa fa-" + @provider.Name)" onclick="document.getElementById('myform').submit()" value="@provider.Name" name="provider">@provider.DisplayName</a></li>
+                                                }
+                                                <li><a href="#" class="fa fa-twitter">Twitter</a></li>
+                                            </ul>
+                                        </div>
+                                    </form>
+                                    }*@
+                                    <div class="clearfix"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Input.Password"></label>
-                <input asp-for="Input.Password" class="form-control" />
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.ConfirmPassword"></label>
-                <input asp-for="Input.ConfirmPassword" class="form-control" />
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-default">Register</button>
-        </form>
+        </section>
     </div>
 </div>
 
