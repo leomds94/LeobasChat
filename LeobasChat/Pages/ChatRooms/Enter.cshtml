@@ -2,5 +2,6 @@
 @model EnterModel
 @using LeobasChat.Pages
 @{
-    Html.RenderPartial("ChatBox", new ChatBoxModel(Model._dbContext, Model._userDbContext, Model._userManager));
+    Html.RenderPartial("ChatBox", Model);
 }
+

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace LeobasChat.Pages.ChatRooms
 {
@@ -34,20 +35,52 @@ namespace LeobasChat.Pages.ChatRooms
             _dbContext = dbContext;
 
             MsgHtml = "";
+            OnlineUsersHtml = "";
         }
-        public static ChatUser ChatUser { get; set; }
+        public ChatUser ChatUser { get; set; }
 
-        public static ChatRoom CurrentRoom { get; set; }
-
+        public ChatRoom CurrentRoom { get; set; }
+        [BindProperty]
+        public string OnlineUsersHtml { get; set; }
+        [BindProperty]
         public string MsgHtml { get; set; }
-
+        [BindProperty]
+        public string SendMessage { get; set; }
 
         public async void OnGetAsync(int id)
         {
-            ChatUser = await _dbContext.ChatUsers
+            var ChatUsers = _dbContext.ChatUsers
                 .Include(s => s.User)
-                .Include(r => r.Chat)
-                .SingleOrDefaultAsync(u => u.UserId == _userManager.GetUserId(User) && u.ChatRoomId == id);
+                .Include(r => r.Chat);
+
+            foreach(ChatUser user in ChatUsers)
+            {
+                if(user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
+                {
+                    ChatUser = user;
+                    break;
+                }
+            }
+
+            CurrentRoom = _dbContext.ChatRooms.Find(id);
+
+            if (CurrentRoom == null)
+            {
+                RedirectToPage("./Index");
+            }
+
+            if (ChatUser == null)
+            {
+                ChatUser = new ChatUser()
+                {
+                    User = await _userManager.GetUserAsync(User),
+                    Chat = CurrentRoom,
+                    IsAdmin = false,
+                    CommandInter = (int)ChatUser.Command.AddChatUser
+                };
+                _dbContext.ChatUsers.Add(ChatUser);
+                await _dbContext.SaveChangesAsync();
+            }
 
             Client = new TcpClient();
             await Client.ConnectAsync(IPAddress.Parse("127.0.0.1"), 10140);
@@ -64,7 +97,17 @@ namespace LeobasChat.Pages.ChatRooms
             };
             Reader = new StreamReader(Stream);
 
-            CurrentRoom = _dbContext.ChatRooms.Find(id);
+            foreach (ChatUser user in _dbContext.ChatUsers.Where(u => u.ChatRoomId == CurrentRoom.ChatRoomId))
+            {
+                OnlineUsersHtml += "<div class='user'>" +
+                                        "<div class='avatar'>" +
+                                            "<img src ='" + user.User.Avatar + "' alt='User name'>" +
+                                            "<div class='status " + ChatUser.User.Status + "'></div>" +
+                                            "</div>" +
+                                        "<div class='name'>" + user.User.UserName + "</div>" +
+                                        "<div class='mood'>" + user.User.Mood + "</div>" +
+                                    "</div>";
+            }
 
             ChatUser.CommandInter = (int)ChatUser.Command.AddChatUser;
             Input = JsonConvert.SerializeObject(ChatUser);
@@ -73,7 +116,19 @@ namespace LeobasChat.Pages.ChatRooms
 
         public void OnPost(int id)
         {
-        
+            var ChatUsers = _dbContext.ChatUsers
+                .Include(s => s.User)
+                .Include(r => r.Chat);
+
+            foreach (ChatUser user in ChatUsers)
+            {
+                if (user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
+                {
+                    ChatUser = user;
+                    break;
+                }
+            }
+
             Stream = Program.clients[ChatUser.ChatUserId].GetStream();
             Writer = new StreamWriter(Stream)
             {
@@ -81,19 +136,27 @@ namespace LeobasChat.Pages.ChatRooms
             };
             Reader = new StreamReader(Stream);
 
-            ChatUser.Message = ChatBoxModel.msgToUser;
-            ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
+           ChatUser.Message = SendMessage;
+           ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
 
             Input = JsonConvert.SerializeObject(ChatUser);
             Writer.WriteLine(Input);
         }
 
-        public async void ReceiveData(int id)
+        public void ReceiveData(int id)
         {
-            ChatUser = await _dbContext.ChatUsers
+            var ChatUsers = _dbContext.ChatUsers
                 .Include(s => s.User)
-                .Include(r => r.Chat)
-                .SingleOrDefaultAsync(u => u.UserId == _userManager.GetUserId(User) && u.ChatRoomId == id);
+                .Include(r => r.Chat);
+
+            foreach (ChatUser user in ChatUsers)
+            {
+                if (user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
+                {
+                    ChatUser = user;
+                    break;
+                }
+            }
 
             Stream = Program.clients[ChatUser.ChatUserId].GetStream();
             Reader = new StreamReader(Stream);
@@ -126,6 +189,7 @@ namespace LeobasChat.Pages.ChatRooms
                                 break;
 
                             case (int)ChatUser.Command.DeleteChatUser:
+                                Program.clients.Remove(ChatUser.ChatUserId);
                                 break;
 
                             case (int)ChatUser.Command.SendMessage:
@@ -146,7 +210,6 @@ namespace LeobasChat.Pages.ChatRooms
                                                                 "</p>" +
                                                             "</div>" +
                                                     "</div>";
-                                ChatBoxModel.MsgHtml = MsgHtml;
                                 break;
                         }
                     }

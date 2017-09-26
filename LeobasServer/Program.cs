@@ -24,18 +24,14 @@ namespace LeobasServer
             {
                 //Handle requests Asynchronously 
                 TcpClient client = ServerSocket.AcceptTcpClient();
-                Console.WriteLine("Someone connected!!");
 
-                Thread t = new Thread(HandleClients);
+                Thread t = new Thread(() => HandleClients(client));
                 t.Start();
             }
         }
 
-        public static void HandleClients()
+        public static void HandleClients(TcpClient client)
         {
-            // Accept connection 
-            TcpClient client = new TcpClient();
-
             while (true)
             {
                 if (client.Available > 0)
@@ -45,21 +41,23 @@ namespace LeobasServer
                     StreamReader Reader = new StreamReader(stream);
 
                     string data = Reader.ReadLine();
-                    ChatUser chatUser = (ChatUser)JsonConvert.DeserializeObject(data);
+                    ChatUser chatUser = JsonConvert.DeserializeObject<ChatUser>(data);
                     if (chatUser.CommandInter == (int)ChatUser.Command.AddChatUser)
                     {
                         lock (_lock) list_clients.Add(chatUser, client);
                         lock (_lock) client = list_clients[chatUser];
+                        Console.WriteLine(chatUser.User.UserName + " entrou na sala " + chatUser.Chat.Name + "!");
                     }
                     else if (chatUser.CommandInter == (int)ChatUser.Command.DeleteChatUser)
                     {
                         lock (_lock) list_clients.Remove(chatUser);
                         client.Client.Shutdown(SocketShutdown.Both);
+                        Console.WriteLine(chatUser.User.UserName + " saiu da sala " + chatUser.Chat.Name + "!");
                         client.Close();
                     }
                     else if (chatUser.CommandInter == (int)ChatUser.Command.SendMessage)
                     {
-                        Console.WriteLine(chatUser.User.UserName + ": " + chatUser.Message);
+                        Console.WriteLine("Sala: " + chatUser.Chat.Name + "-" + chatUser.User.UserName + ": " + chatUser.Message );
                         Broadcast(data, chatUser.ChatRoomId);
                     }
                 }
