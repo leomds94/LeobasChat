@@ -1,7 +1,38 @@
 ﻿@page "{id:int}"
 @model EnterModel
 @using LeobasChat.Pages
-@{
-    Html.RenderPartial("ChatBox", Model);
-}
 
+<link rel="stylesheet" href="~/css/groupchat.css" />
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+
+<div class="content container-fluid bootstrap snippets">
+    <div class="row row-broken">
+        <div class="col-sm-3 col-xs-12">
+            <div class="col-inside-lg decor-default chat" style="overflow: hidden; outline: none;" tabindex="5000">
+                <div class="chat-users">
+                    <h6>Online</h6>
+                    @Html.Raw(Model.OnlineUsersHtml)
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-9 col-xs-12 chat" style="overflow: hidden; outline: none;" tabindex="5001">
+            <div class="col-inside-lg decor-default">
+                <div class="chat-body">
+                    <h6>Mini Chat</h6>
+                    @Html.Raw(Model.MsgHtml)
+                    <div class="answer-add">
+                        <form method="post">
+                            <input placeholder="Write a message" asp-for="SendMessage">
+                            <span class="answer-btn answer-btn-1"></span>
+                            <label>
+                                <span class="answer-btn answer-btn-2"></span>
+                                <button type="submit" style="display:none" />
+                            </label>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <a asp-page="./Index" class="btn btn-primary pull-right">Sair da sala</a>
+        </div>
+    </div>
+</div>

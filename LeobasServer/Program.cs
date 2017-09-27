@@ -39,6 +39,10 @@ namespace LeobasServer
                     // Setup reader/writer stream 
                     NetworkStream stream = client.GetStream();
                     StreamReader Reader = new StreamReader(stream);
+                    StreamWriter Writer = new StreamWriter(stream)
+                    {
+                        AutoFlush = true
+                    };
 
                     string data = Reader.ReadLine();
                     ChatUser chatUser = JsonConvert.DeserializeObject<ChatUser>(data);
@@ -47,12 +51,14 @@ namespace LeobasServer
                         lock (_lock) list_clients.Add(chatUser, client);
                         lock (_lock) client = list_clients[chatUser];
                         Console.WriteLine(chatUser.User.UserName + " entrou na sala " + chatUser.Chat.Name + "!");
+                        Broadcast(data, chatUser.ChatRoomId);
                     }
                     else if (chatUser.CommandInter == (int)ChatUser.Command.DeleteChatUser)
                     {
                         lock (_lock) list_clients.Remove(chatUser);
                         client.Client.Shutdown(SocketShutdown.Both);
                         Console.WriteLine(chatUser.User.UserName + " saiu da sala " + chatUser.Chat.Name + "!");
+                        Writer.WriteLine(data);
                         client.Close();
                     }
                     else if (chatUser.CommandInter == (int)ChatUser.Command.SendMessage)

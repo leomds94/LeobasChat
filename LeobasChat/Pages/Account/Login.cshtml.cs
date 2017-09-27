@@ -86,12 +86,6 @@ namespace LeobasChat.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(Input.Username, Input.Password, Input.RememberMe, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
-                    var user = await _userManager.GetUserAsync(User);
-                    user.Avatar = "https://bootdey.com/img/Content/avatar/avatar6.png";
-                    user.Status = "online";
-                    var resultUser = await _userManager.UpdateAsync(user);
-                    await _userdbContext.SaveChangesAsync();
-
                     _logger.LogInformation("User logged in.");
 
                     return LocalRedirect(Url.GetLocalUrl(returnUrl));

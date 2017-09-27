@@ -11,6 +11,10 @@ using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Collections.Generic;
+using System;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Html;
 
 namespace LeobasChat.Pages.ChatRooms
 {
@@ -33,15 +37,15 @@ namespace LeobasChat.Pages.ChatRooms
             _userManager = userManager;
             _userDbContext = userDbContext;
             _dbContext = dbContext;
-
-            MsgHtml = "";
-            OnlineUsersHtml = "";
+            if(Program.userMsgBox.ContainsKey(0))
+                MsgHtml = Program.userMsgBox[0];
         }
         public ChatUser ChatUser { get; set; }
 
         public ChatRoom CurrentRoom { get; set; }
         [BindProperty]
         public string OnlineUsersHtml { get; set; }
+
         [BindProperty]
         public string MsgHtml { get; set; }
         [BindProperty]
@@ -49,13 +53,15 @@ namespace LeobasChat.Pages.ChatRooms
 
         public async void OnGetAsync(int id)
         {
+            OnlineUsersHtml = "";
+
             var ChatUsers = _dbContext.ChatUsers
                 .Include(s => s.User)
                 .Include(r => r.Chat);
 
-            foreach(ChatUser user in ChatUsers)
+            foreach (ChatUser user in ChatUsers)
             {
-                if(user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
+                if (user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
                 {
                     ChatUser = user;
                     break;
@@ -87,9 +93,10 @@ namespace LeobasChat.Pages.ChatRooms
             if (!Program.clients.ContainsKey(ChatUser.ChatUserId))
             {
                 Program.clients.Add(ChatUser.ChatUserId, Client);
-                Thread = new Thread(new ThreadStart(() => ReceiveData(id)));
+                Program.userMsgBox.Add(ChatUser.ChatUserId, MsgHtml);
             }
-                
+            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
+
             Stream = Program.clients[ChatUser.ChatUserId].GetStream();
             Writer = new StreamWriter(Stream)
             {
@@ -97,17 +104,26 @@ namespace LeobasChat.Pages.ChatRooms
             };
             Reader = new StreamReader(Stream);
 
-            foreach (ChatUser user in _dbContext.ChatUsers.Where(u => u.ChatRoomId == CurrentRoom.ChatRoomId))
+            var chatUsers = _dbContext.ChatUsers
+                            .Include(s => s.User)
+                            .Include(r => r.Chat)
+                            .Where(u => u.ChatRoomId == CurrentRoom.ChatRoomId);
+
+            foreach (ChatUser user in chatUsers)
             {
                 OnlineUsersHtml += "<div class='user'>" +
                                         "<div class='avatar'>" +
                                             "<img src ='" + user.User.Avatar + "' alt='User name'>" +
-                                            "<div class='status " + ChatUser.User.Status + "'></div>" +
+                                            "<div class='status " + user.User.Status + "'></div>" +
                                             "</div>" +
                                         "<div class='name'>" + user.User.UserName + "</div>" +
                                         "<div class='mood'>" + user.User.Mood + "</div>" +
                                     "</div>";
             }
+            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
+
+            Program.ReceiveEvent = new Thread(() => ReceiveData(ChatUser));
+            Program.ReceiveEvent.Start();
 
             ChatUser.CommandInter = (int)ChatUser.Command.AddChatUser;
             Input = JsonConvert.SerializeObject(ChatUser);
@@ -116,18 +132,35 @@ namespace LeobasChat.Pages.ChatRooms
 
         public void OnPost(int id)
         {
-            var ChatUsers = _dbContext.ChatUsers
-                .Include(s => s.User)
-                .Include(r => r.Chat);
+            OnlineUsersHtml = "";
+            CurrentRoom = _dbContext.ChatRooms.Find(id);
+            var chatUsers = _dbContext.ChatUsers
+                            .Include(s => s.User)
+                            .Include(r => r.Chat)
+                            .Where(u => u.ChatRoomId == CurrentRoom.ChatRoomId);
 
-            foreach (ChatUser user in ChatUsers)
+            foreach (ChatUser user in chatUsers)
             {
-                if (user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
+                OnlineUsersHtml += "<div class='user'>" +
+                                        "<div class='avatar'>" +
+                                            "<img src ='" + user.User.Avatar + "' alt='User name'>" +
+                                            "<div class='status " + user.User.Status + "'></div>" +
+                                            "</div>" +
+                                        "<div class='name'>" + user.User.UserName + "</div>" +
+                                        "<div class='mood'>" + user.User.Mood + "</div>" +
+                                    "</div>";
+
+                if (user.UserId == _userManager.GetUserId(User))
                 {
                     ChatUser = user;
                     break;
                 }
             }
+
+            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
+
+            Program.ReceiveEvent = new Thread(() => ReceiveData(ChatUser));
+            Program.ReceiveEvent.Start();
 
             Stream = Program.clients[ChatUser.ChatUserId].GetStream();
             Writer = new StreamWriter(Stream)
@@ -136,98 +169,67 @@ namespace LeobasChat.Pages.ChatRooms
             };
             Reader = new StreamReader(Stream);
 
-           ChatUser.Message = SendMessage;
-           ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
+            ChatUser.Message = SendMessage;
+            ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
 
             Input = JsonConvert.SerializeObject(ChatUser);
             Writer.WriteLine(Input);
         }
 
-        public void ReceiveData(int id)
+        public ActionResult ReceiveData(ChatUser actualUser)
         {
-            var ChatUsers = _dbContext.ChatUsers
-                .Include(s => s.User)
-                .Include(r => r.Chat);
-
-            foreach (ChatUser user in ChatUsers)
-            {
-                if (user.UserId == _userManager.GetUserId(User) && user.ChatRoomId == id)
-                {
-                    ChatUser = user;
-                    break;
-                }
-            }
-
-            Stream = Program.clients[ChatUser.ChatUserId].GetStream();
+            Stream = Program.clients[actualUser.ChatUserId].GetStream();
             Reader = new StreamReader(Stream);
+
             while (true)
             {
-                if (Client.Available > 0)
+                if (Program.clients[ChatUser.ChatUserId].Available > 0)
                 {
                     Input = Reader.ReadLine();
 
                     dynamic objClass = JsonConvert.DeserializeObject<ChatUser>(Input);
 
-                    //if (objClass.Count == 7)
-                    //{
-                    //    ChatRoom = JsonConvert.DeserializeObject<ChatRoom>(Input);
-                    //    switch (ChatRoom.CommandInter)
-                    //    {
-                    //        case (int)ChatRoom.Command.AddChat:
-                    //            break;
-
-                    //        case (int)ChatRoom.Command.DeleteChat:
-                    //            break;
-                    //    }
-                    //}
                     if (objClass is ChatUser)
                     {
-                        ChatUser = JsonConvert.DeserializeObject<ChatUser>(Input);
-                        switch (ChatUser.CommandInter)
+                        ChatUser userSender = JsonConvert.DeserializeObject<ChatUser>(Input);
+                        switch (userSender.CommandInter)
                         {
                             case (int)ChatUser.Command.AddChatUser:
+                                Program.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " entrou na sala!<br/>";
                                 break;
 
                             case (int)ChatUser.Command.DeleteChatUser:
-                                Program.clients.Remove(ChatUser.ChatUserId);
+                                Program.clients.Remove(userSender.ChatUserId);
+                                Program.userMsgBox.Remove(userSender.ChatUserId);
+                                Program.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " saiu da sala!<br/>";
+                                _dbContext.Remove(userSender);
+                                _dbContext.SaveChanges();
+                                RedirectToPage("./Index");
                                 break;
 
                             case (int)ChatUser.Command.SendMessage:
-                                if (ChatUser.UserId == _userManager.GetUserId(User))
-                                    MsgHtml += "<div class='answer right'>";
+                                if (userSender.UserId == actualUser.UserId)
+                                    Program.userMsgBox[actualUser.ChatUserId] += "<div class='answer right'>";
                                 else
-                                    MsgHtml += "<div class='answer left'>";
+                                    Program.userMsgBox[actualUser.ChatUserId] += "<div class='answer left'>";
 
-                                MsgHtml += "<div class='avatar'>" +
-                                                            "<img src = '" + ChatUser.User.Avatar + "' alt='User name'>" +
-                                                            "<div class='status " + ChatUser.User.Status + "'></div>" +
+                                Program.userMsgBox[actualUser.ChatUserId] += "<div class='avatar'>" +
+                                                            "<img src = '" + userSender.User.Avatar + "' alt='User name'>" +
+                                                            "<div class='status " + userSender.User.Status + "'></div>" +
                                                         "</div>" +
                                                             "<div class='text'>" +
-                                                                "<div class='media-heading'>" + ChatUser.User.UserName + "</div>" +
-                                                                ChatUser.Message +
+                                                                "<div class='media-heading'>" + userSender.User.UserName + "</div>" +
+                                                                userSender.Message +
                                                                 "<p class='speech-time'>" +
-                                                                    "<i class='fa fa-clock-o fa-fw'></i> 09:27" +
+                                                                    "<i class='fa fa-clock-o fa-fw'></i> " + DateTime.Now.ToString("HH:mm:ss") +
                                                                 "</p>" +
                                                             "</div>" +
                                                     "</div>";
                                 break;
                         }
+                        MsgHtml = Program.userMsgBox[actualUser.ChatUserId];
+                        return RedirectToPage();
                     }
-                    //else if (objClass.Count == 6)
-                    //{
-                    //    loggedUser = Serializer.Deserialize<LoggedUser>(Input);
-                    //    switch (loggedUser.CommandInter)
-                    //    {
-                    //        case (int)LoggedUser.Command.ChangeAvatar:
-                    //            break;
-
-                    //        case (int)LoggedUser.Command.ChangeStatus:
-                    //            break;
-
-                    //        case (int)LoggedUser.Command.ChangeUserName:
-                    //            break;
-                    //    }
-                    //}
                 }
             }
         }

@@ -38,20 +38,26 @@ namespace LeobasChat.Pages.ChatRooms
 
         public async Task<IActionResult> OnGetAsync()
         {
+            user = await _userManager.GetUserAsync(User);
+            user.Avatar = "https://bootdey.com/img/Content/avatar/avatar6.png";
+            user.Status = "online";
+            var resultUser = await _userManager.UpdateAsync(user);
+            await _userDbContext.SaveChangesAsync();
+
             ChatRooms = await _dbContext.ChatRooms.ToListAsync();
             UserAdmin = await _dbContext.ChatUsers.Include(s => s.User).SingleOrDefaultAsync(u => u.UserId == _userManager.GetUserId(User));
 
-            user = await _userManager.GetUserAsync(User);
+            //user = await _userManager.GetUserAsync(User);
 
-            var store = new UserStore<ApplicationUser>(_userDbContext);
+            //var store = new UserStore<ApplicationUser>(_userDbContext);
 
-            user.Status = "online";
-            user.Avatar = "https://bootdey.com/img/Content/avatar/avatar1.png";
-            user.Mood = "Olá, estou usando Leobas Chat!";
+            //user.Status = "online";
+            //user.Avatar = "https://bootdey.com/img/Content/avatar/avatar1.png";
+            //user.Mood = "Olá, estou usando Leobas Chat!";
 
-            await _userManager.UpdateAsync(user).ConfigureAwait(false);
+            //await _userManager.UpdateAsync(user).ConfigureAwait(false);
 
-            store.Context.SaveChanges();
+            //store.Context.SaveChanges();
 
             return Page();
         }
