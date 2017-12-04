@@ -1,32 +1,17 @@
-﻿@page "{id:int}"
-@model EnterModel
-@using LeobasChat.Pages
+﻿@model EnterModel
 
 <link rel="stylesheet" href="~/css/groupchat.css" />
 <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
 
-<div class="panel-heading">
-    <div class="panel-control">
-        <div class="btn-group">
-            <button class="btn btn-default" type="button" data-toggle="collapse" data-target="#demo-chat-body"><i class="fa fa-chevron-down"></i></button>
-            <button type="button" class="btn btn-default" data-toggle="dropdown"><i class="fa fa-gear"></i></button>
-            <ul class="dropdown-menu dropdown-menu-right">
-                <li><a href="#">Online</a></li>
-                <li><a href="#">Ocupado</a></li>
-                <li><a href="#">Ausente</a></li>
-                <li class="divider"></li>
-                <li><a id="demo-connect-chat" href="#" class="disabled-link" data-target="#demo-chat-body">Desconectar</a></li>
-            </ul>
-        </div>
-    </div>
-</div>
 <div class="content container-fluid bootstrap snippets">
     <div class="row row-broken">
         <div class="col-sm-3 col-xs-12">
             <div class="col-inside-lg decor-default chat" style="overflow: hidden; outline: none;" tabindex="5000">
                 <div class="chat-users">
                     <h6>Online</h6>
-                        @Html.Raw(@Model.OnlineUsersHtml)
+                    <div id="refresh">
+                        @Html.Raw(Model.OnlineUsersHtml)
+                    </div>
                 </div>
             </div>
         </div>
@@ -35,7 +20,7 @@
                 <div class="chat-body">
                     <h6>Mini Chat</h6>
                     <div id="refresh">
-                        @Html.Raw(@Model.MsgHtml)
+                        @Html.Raw(Model.MsgHtml)
                     </div>
                     <div class="answer-add">
                         <form method="post">
@@ -54,7 +39,16 @@
     </div>
 </div>
 
-<script type="text/javascript" src="~/lib/jquery/dist/jquery.js">
+<script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.2.0.min.js"
+        asp-fallback-src="~/lib/jquery/dist/jquery.min.js"
+        asp-fallback-test="window.jQuery"
+        crossorigin="anonymous"
+        integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk">
+</script>
+
+
+
+<script type="text/javascript">
     $(document).ready(function () {
         setInterval(function () {
             $("#refresh").load();

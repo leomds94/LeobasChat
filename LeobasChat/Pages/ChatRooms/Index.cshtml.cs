@@ -15,24 +15,21 @@ namespace LeobasChat.Pages.ChatRooms
     [Authorize]
     public class IndexModel : PageModel
     {
-        public readonly ChatDbContext _dbContext;
+        public readonly ApplicationDbContext _dbContext;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ApplicationDbContext _userDbContext;
 
-        public IndexModel(ChatDbContext dbContext, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext userdbContext)
+        public IndexModel(ApplicationDbContext dbContext, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
         {
             _dbContext = dbContext;
             _signInManager = signInManager;
             _userManager = userManager;
-            _userDbContext = userdbContext;
-
         }
 
         public List<ChatRoom> ChatRooms { get; private set; }
 
         [BindProperty]
-        public ChatUser UserAdmin { get; set; }
+        public List<ChatUser> ChatUsers { get; set; }
 
         public ApplicationUser user { get; set; }
 
@@ -42,10 +39,13 @@ namespace LeobasChat.Pages.ChatRooms
             user.Avatar = "https://bootdey.com/img/Content/avatar/avatar6.png";
             user.Status = "online";
             var resultUser = await _userManager.UpdateAsync(user);
-            await _userDbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
 
             ChatRooms = await _dbContext.ChatRooms.ToListAsync();
-            UserAdmin = await _dbContext.ChatUsers.Include(s => s.User).SingleOrDefaultAsync(u => u.UserId == _userManager.GetUserId(User));
+
+            ChatUsers = _dbContext.ChatUsers.Where(s => s.UserId == _userManager.GetUserId(User)).ToList();
+
+            //UserAdmin = await _dbContext.ChatUsers.Include(s => s.User).SingleOrDefaultAsync(u => u.UserId == _userManager.GetUserId(User));
 
             //user = await _userManager.GetUserAsync(User);
 

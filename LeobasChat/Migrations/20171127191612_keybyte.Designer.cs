@@ -11,8 +11,8 @@ using System;
 namespace LeobasChat.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20170917200356_userinit")]
-    partial class userinit
+    [Migration("20171127191612_keybyte")]
+    partial class keybyte
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -27,6 +27,8 @@ namespace LeobasChat.Migrations
                         .ValueGeneratedOnAdd();
 
                     b.Property<int>("AccessFailedCount");
+
+                    b.Property<string>("ApplicationUserId");
 
                     b.Property<string>("Avatar");
 
@@ -69,6 +71,8 @@ namespace LeobasChat.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicationUserId");
+
                     b.HasIndex("ChatRoomId");
 
                     b.HasIndex("NormalizedEmail")
@@ -95,24 +99,35 @@ namespace LeobasChat.Migrations
 
                     b.HasKey("ChatRoomId");
 
-                    b.ToTable("ChatRoom");
+                    b.ToTable("ChatRooms");
                 });
 
             modelBuilder.Entity("LeobasChat.Data.ChatUser", b =>
                 {
-                    b.Property<string>("UserId");
+                    b.Property<int>("ChatUserId")
+                        .ValueGeneratedOnAdd();
 
                     b.Property<int>("ChatRoomId");
 
-                    b.Property<int>("ChatUserId");
+                    b.Property<int>("CommandInter");
+
+                    b.Property<byte[]>("DesKey");
 
                     b.Property<bool>("IsAdmin");
 
-                    b.HasKey("UserId");
+                    b.Property<byte[]>("Message");
+
+                    b.Property<string>("RsaKey");
+
+                    b.Property<string>("UserId");
+
+                    b.HasKey("ChatUserId");
 
                     b.HasIndex("ChatRoomId");
 
-                    b.ToTable("ChatUser");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatUsers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -225,6 +240,10 @@ namespace LeobasChat.Migrations
 
             modelBuilder.Entity("LeobasChat.Data.ApplicationUser", b =>
                 {
+                    b.HasOne("LeobasChat.Data.ApplicationUser")
+                        .WithMany("ChatUsers")
+                        .HasForeignKey("ApplicationUserId");
+
                     b.HasOne("LeobasChat.Data.ChatRoom")
                         .WithMany("ChatUsers")
                         .HasForeignKey("ChatRoomId");
@@ -238,9 +257,8 @@ namespace LeobasChat.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("LeobasChat.Data.ApplicationUser", "User")
-                        .WithMany("EnteredChats")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany()
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -13,6 +13,7 @@ namespace LeobasChat.Data
         public string Name { get; set; }
         public bool IsPublic { get; set; }
         public int UserLimit { get; set; }
+
         public List<ApplicationUser> ChatUsers { get; set; }
     }
 }

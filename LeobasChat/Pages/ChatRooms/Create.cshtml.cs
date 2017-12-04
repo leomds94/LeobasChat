@@ -4,16 +4,18 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using LeobasChat.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace LeobasChat.Pages.ChatRooms
 {
     [Authorize]
     public class CreateModel : PageModel
     {
-        private readonly ChatDbContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public CreateModel(ChatDbContext dbContext, UserManager<ApplicationUser> userManager)
+        public CreateModel(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
         {
             _dbContext = dbContext;
             _userManager = userManager;
@@ -29,10 +31,13 @@ namespace LeobasChat.Pages.ChatRooms
                 return Page();
             }
 
+            TripleDESCryptoServiceProvider TDES = new TripleDESCryptoServiceProvider();
+
             ChatUser chatAdmin = new ChatUser()
             {
                 User = await _userManager.GetUserAsync(User),
                 Chat = ChatRoom,
+                DesKey = TDES.Key,
                 IsAdmin = true
             };
             _dbContext.ChatRooms.Add(ChatRoom);

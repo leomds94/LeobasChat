@@ -13,9 +13,9 @@ namespace LeobasChat.Pages.ChatRooms
     [Authorize]
     public class EditModel : PageModel
     {
-        private readonly ChatDbContext _dbContext;
+        private readonly ApplicationDbContext _dbContext;
 
-        public EditModel(ChatDbContext dbContext)
+        public EditModel(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }

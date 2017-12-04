@@ -14,10 +14,6 @@ namespace LeobasChat
 {
     public class Program
     {
-        public static Dictionary<int, TcpClient> clients = new Dictionary<int, TcpClient>();
-        public static Dictionary<int, string> userMsgBox = new Dictionary<int, string>();
-        public static Thread ReceiveEvent;
-
         public static void Main(string[] args)
         {
             BuildWebHost(args).Run();

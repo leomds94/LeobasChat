@@ -27,10 +27,10 @@
                     <td>@ChatRoom.UserLimit</td>
                     @*<td>@ChatRoom.ChatUsers.Count</td>*@
 
-                    @if (Model.UserAdmin != null)
+
+
+                    @if (Model.ChatUsers.Exists(c => c.ChatRoomId == ChatRoom.ChatRoomId && c.IsAdmin == true))
                     {
-                        @if (Model.UserAdmin.IsAdmin == true)
-                        {
                             <td>
                                 <a class="btn btn-primary" asp-page="./Edit" asp-route-id="@ChatRoom.ChatRoomId">Edit</a>
                             </td>
@@ -42,7 +42,6 @@
                                     Deletar
                                 </button>
                             </td>
-                        }
                     }
                     <td>
                         <a class="btn btn-primary" asp-page="./Enter" asp-route-id="@ChatRoom.ChatRoomId">Entrar na sala</a>

@@ -48,21 +48,6 @@
                                             </div>
                                         </form>
                                     </div>
-                                    @*@{
-                                        if ((Model.ExternalLogins?.Count ?? 0) != 0)
-                                        {
-                                            <form asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                                                <div class="social-login">
-                                                    <p>- - - - - - - - - - - - - Sign In With - - - - - - - - - - - - - </p>
-                                                        @foreach (var provider in Model.ExternalLogins)
-                                                        {
-                                                             <button class="@("fa fa-" + @provider.Name)" type="submit" value="@provider.Name" name="provider">@provider.DisplayName</button>
-                                                        }
-                                                        <button href="#" class="fa fa-twitter">Twitter</button>
-                                                </div>
-                                            </form>
-                                        }
-                                    }*@
                                     <div class="clearfix"></div>
                                 </div>
                             </div>

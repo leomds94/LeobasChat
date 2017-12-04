@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace LeobasChat.Migrations
 {
-    public partial class userinit : Migration
+    public partial class keybyte : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -24,7 +24,7 @@ namespace LeobasChat.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ChatRoom",
+                name: "ChatRooms",
                 columns: table => new
                 {
                     ChatRoomId = table.Column<int>(type: "int", nullable: false)
@@ -35,7 +35,7 @@ namespace LeobasChat.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatRoom", x => x.ChatRoomId);
+                    table.PrimaryKey("PK_ChatRooms", x => x.ChatRoomId);
                 });
 
             migrationBuilder.CreateTable(
@@ -65,6 +65,7 @@ namespace LeobasChat.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     AccessFailedCount = table.Column<int>(type: "int", nullable: false),
+                    ApplicationUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     Avatar = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ChatRoomId = table.Column<int>(type: "int", nullable: true),
                     ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -87,9 +88,15 @@ namespace LeobasChat.Migrations
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetUsers_ChatRoom_ChatRoomId",
+                        name: "FK_AspNetUsers_AspNetUsers_ApplicationUserId",
+                        column: x => x.ApplicationUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_ChatRooms_ChatRoomId",
                         column: x => x.ChatRoomId,
-                        principalTable: "ChatRoom",
+                        principalTable: "ChatRooms",
                         principalColumn: "ChatRoomId",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -180,29 +187,34 @@ namespace LeobasChat.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ChatUser",
+                name: "ChatUsers",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ChatUserId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
                     ChatRoomId = table.Column<int>(type: "int", nullable: false),
-                    ChatUserId = table.Column<int>(type: "int", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "bit", nullable: false)
+                    CommandInter = table.Column<int>(type: "int", nullable: false),
+                    DesKey = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    IsAdmin = table.Column<bool>(type: "bit", nullable: false),
+                    Message = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    RsaKey = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatUser", x => x.UserId);
+                    table.PrimaryKey("PK_ChatUsers", x => x.ChatUserId);
                     table.ForeignKey(
-                        name: "FK_ChatUser_ChatRoom_ChatRoomId",
+                        name: "FK_ChatUsers_ChatRooms_ChatRoomId",
                         column: x => x.ChatRoomId,
-                        principalTable: "ChatRoom",
+                        principalTable: "ChatRooms",
                         principalColumn: "ChatRoomId",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ChatUser_AspNetUsers_UserId",
+                        name: "FK_ChatUsers_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -233,6 +245,11 @@ namespace LeobasChat.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_ApplicationUserId",
+                table: "AspNetUsers",
+                column: "ApplicationUserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_ChatRoomId",
                 table: "AspNetUsers",
                 column: "ChatRoomId");
@@ -250,9 +267,14 @@ namespace LeobasChat.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ChatUser_ChatRoomId",
-                table: "ChatUser",
+                name: "IX_ChatUsers_ChatRoomId",
+                table: "ChatUsers",
                 column: "ChatRoomId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatUsers_UserId",
+                table: "ChatUsers",
+                column: "UserId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -273,7 +295,7 @@ namespace LeobasChat.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "ChatUser");
+                name: "ChatUsers");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
@@ -282,7 +304,7 @@ namespace LeobasChat.Migrations
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "ChatRoom");
+                name: "ChatRooms");
         }
     }
 }

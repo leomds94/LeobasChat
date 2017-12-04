@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using LeobasChat.Data;
@@ -11,10 +10,11 @@ using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
 using System.Linq;
-using System.Collections.Generic;
 using System;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Html;
+using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.Text;
+using LeobasChat.Services;
 
 namespace LeobasChat.Pages.ChatRooms
 {
@@ -22,8 +22,7 @@ namespace LeobasChat.Pages.ChatRooms
     public class EnterModel : PageModel
     {
         public readonly UserManager<ApplicationUser> _userManager;
-        public readonly ChatDbContext _dbContext;
-        public readonly ApplicationDbContext _userDbContext;
+        public readonly ApplicationDbContext _dbContext;
 
         public TcpClient Client { get; set; }
         public Stream Stream { get; set; }
@@ -32,27 +31,29 @@ namespace LeobasChat.Pages.ChatRooms
         public string Input { get; set; }
         public Thread Thread { get; set; }
 
-        public EnterModel(ChatDbContext dbContext, ApplicationDbContext userDbContext, UserManager<ApplicationUser> userManager)
+        public EnterModel(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
-            _userDbContext = userDbContext;
             _dbContext = dbContext;
-            if(Program.userMsgBox.ContainsKey(0))
-                MsgHtml = Program.userMsgBox[0];
+            if (Startup.userMsgBox.ContainsKey(0))
+                MsgHtml = Startup.userMsgBox[0];
         }
+        [BindProperty]
         public ChatUser ChatUser { get; set; }
-
+        [BindProperty]
         public ChatRoom CurrentRoom { get; set; }
         [BindProperty]
         public string OnlineUsersHtml { get; set; }
-
         [BindProperty]
         public string MsgHtml { get; set; }
         [BindProperty]
         public string SendMessage { get; set; }
 
-        public async void OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(int id)
         {
+            TripleDESCryptoServiceProvider TDES = new TripleDESCryptoServiceProvider();
+            RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
+
             OnlineUsersHtml = "";
 
             var ChatUsers = _dbContext.ChatUsers
@@ -77,32 +78,53 @@ namespace LeobasChat.Pages.ChatRooms
 
             if (ChatUser == null)
             {
+                TDES.GenerateKey();
+
                 ChatUser = new ChatUser()
                 {
                     User = await _userManager.GetUserAsync(User),
                     Chat = CurrentRoom,
                     IsAdmin = false,
+                    DesKey = TDES.Key,
                     CommandInter = (int)ChatUser.Command.AddChatUser
                 };
                 _dbContext.ChatUsers.Add(ChatUser);
                 await _dbContext.SaveChangesAsync();
             }
 
-            Client = new TcpClient();
-            await Client.ConnectAsync(IPAddress.Parse("127.0.0.1"), 10140);
-            if (!Program.clients.ContainsKey(ChatUser.ChatUserId))
+            if (!Startup.clients.ContainsKey(ChatUser.ChatUserId))
             {
-                Program.clients.Add(ChatUser.ChatUserId, Client);
-                Program.userMsgBox.Add(ChatUser.ChatUserId, MsgHtml);
-            }
-            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
+                Client = new TcpClient();
+                await Client.ConnectAsync(IPAddress.Parse("127.0.0.1"), 10140);
+                Startup.clients.Add(ChatUser.ChatUserId, Client);
+                Startup.userMsgBox.Add(ChatUser.ChatUserId, MsgHtml);
 
-            Stream = Program.clients[ChatUser.ChatUserId].GetStream();
-            Writer = new StreamWriter(Stream)
-            {
-                AutoFlush = true
-            };
-            Reader = new StreamReader(Stream);
+                Stream = Startup.clients[ChatUser.ChatUserId].GetStream();
+                Writer = new StreamWriter(Stream)
+                {
+                    AutoFlush = true
+                };
+                Reader = new StreamReader(Stream);
+
+                ChatUser.CommandInter = (int)ChatUser.Command.getRSAKey;
+                Input = JsonConvert.SerializeObject(ChatUser);
+                Writer.WriteLine(Input);
+                while(true)
+                {
+                    if(Client.Available > 0)
+                    {
+                        string data = Reader.ReadLine();
+                        ChatUser = JsonConvert.DeserializeObject<ChatUser>(data);
+                        break;
+                    }
+                }
+
+                ChatUser.CommandInter = (int)ChatUser.Command.AddChatUser;
+                ChatUser.DesKey = RSAEncrypt.Encrypt(ChatUser.DesKey, 2048, ChatUser.RsaKey);
+                Input = JsonConvert.SerializeObject(ChatUser);
+                Writer.WriteLine(Input);
+            }
+            MsgHtml = Startup.userMsgBox[ChatUser.ChatUserId];
 
             var chatUsers = _dbContext.ChatUsers
                             .Include(s => s.User)
@@ -120,17 +142,14 @@ namespace LeobasChat.Pages.ChatRooms
                                         "<div class='mood'>" + user.User.Mood + "</div>" +
                                     "</div>";
             }
-            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
 
-            Program.ReceiveEvent = new Thread(() => ReceiveData(ChatUser));
-            Program.ReceiveEvent.Start();
+            Startup.ReceiveEvent = new Task(() => ReceiveData(ChatUser));
+            Startup.ReceiveEvent.Start();
 
-            ChatUser.CommandInter = (int)ChatUser.Command.AddChatUser;
-            Input = JsonConvert.SerializeObject(ChatUser);
-            Writer.WriteLine(Input);
+            return Page();
         }
 
-        public void OnPost(int id)
+        public IActionResult OnPost(int id)
         {
             OnlineUsersHtml = "";
             CurrentRoom = _dbContext.ChatRooms.Find(id);
@@ -157,81 +176,122 @@ namespace LeobasChat.Pages.ChatRooms
                 }
             }
 
-            MsgHtml = Program.userMsgBox[ChatUser.ChatUserId];
-
-            Program.ReceiveEvent = new Thread(() => ReceiveData(ChatUser));
-            Program.ReceiveEvent.Start();
-
-            Stream = Program.clients[ChatUser.ChatUserId].GetStream();
-            Writer = new StreamWriter(Stream)
+            if (id != 1234)
             {
-                AutoFlush = true
-            };
-            Reader = new StreamReader(Stream);
+                Stream = Startup.clients[ChatUser.ChatUserId].GetStream();
+                Writer = new StreamWriter(Stream)
+                {
+                    AutoFlush = true
+                };
+                Reader = new StreamReader(Stream);
 
-            ChatUser.Message = SendMessage;
-            ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
+                byte[] messageEncrypted;
 
-            Input = JsonConvert.SerializeObject(ChatUser);
-            Writer.WriteLine(Input);
+                // Encrypt the string to an array of bytes.
+                messageEncrypted = Encrypt(SendMessage, ChatUser.DesKey);
+
+                ChatUser.Message = messageEncrypted;
+                ChatUser.CommandInter = (int)ChatUser.Command.SendMessage;
+
+                Input = JsonConvert.SerializeObject(ChatUser);
+                Writer.WriteLine(Input);
+            }
+            ReceiveData(ChatUser);
+
+            return Page();
         }
 
-        public ActionResult ReceiveData(ChatUser actualUser)
+        public IActionResult ReceiveData(ChatUser actualUser)
         {
-            Stream = Program.clients[actualUser.ChatUserId].GetStream();
+            Stream = Startup.clients[actualUser.ChatUserId].GetStream();
             Reader = new StreamReader(Stream);
 
             while (true)
             {
-                if (Program.clients[ChatUser.ChatUserId].Available > 0)
+                if (Startup.clients[ChatUser.ChatUserId].Available > 0)
                 {
                     Input = Reader.ReadLine();
+                    ChatUser userSender = JsonConvert.DeserializeObject<ChatUser>(Input);
 
-                    dynamic objClass = JsonConvert.DeserializeObject<ChatUser>(Input);
-
-                    if (objClass is ChatUser)
+                    switch (userSender.CommandInter)
                     {
-                        ChatUser userSender = JsonConvert.DeserializeObject<ChatUser>(Input);
-                        switch (userSender.CommandInter)
-                        {
-                            case (int)ChatUser.Command.AddChatUser:
-                                Program.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " entrou na sala!<br/>";
-                                break;
+                        case (int)ChatUser.Command.AddChatUser:
+                            Startup.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " entrou na sala!<br/>";
+                            break;
 
-                            case (int)ChatUser.Command.DeleteChatUser:
-                                Program.clients.Remove(userSender.ChatUserId);
-                                Program.userMsgBox.Remove(userSender.ChatUserId);
-                                Program.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " saiu da sala!<br/>";
-                                _dbContext.Remove(userSender);
-                                _dbContext.SaveChanges();
-                                RedirectToPage("./Index");
-                                break;
+                        case (int)ChatUser.Command.DeleteChatUser:
+                            Startup.clients.Remove(userSender.ChatUserId);
+                            Startup.userMsgBox.Remove(userSender.ChatUserId);
+                            Startup.userMsgBox[userSender.ChatUserId] += userSender.User.UserName + " saiu da sala!<br/>";
+                            _dbContext.Remove(userSender);
+                            _dbContext.SaveChanges();
+                            break;
 
-                            case (int)ChatUser.Command.SendMessage:
-                                if (userSender.UserId == actualUser.UserId)
-                                    Program.userMsgBox[actualUser.ChatUserId] += "<div class='answer right'>";
-                                else
-                                    Program.userMsgBox[actualUser.ChatUserId] += "<div class='answer left'>";
+                        case (int)ChatUser.Command.SendMessage:
+                            if (userSender.UserId == actualUser.UserId)
+                                Startup.userMsgBox[actualUser.ChatUserId] += "<div class='answer right'>";
+                            else
+                                Startup.userMsgBox[actualUser.ChatUserId] += "<div class='answer left'>";
 
-                                Program.userMsgBox[actualUser.ChatUserId] += "<div class='avatar'>" +
-                                                            "<img src = '" + userSender.User.Avatar + "' alt='User name'>" +
-                                                            "<div class='status " + userSender.User.Status + "'></div>" +
+                            string messageDecrypted;
+
+                            // Decrypt the bytes to a string.
+                            messageDecrypted = Decrypt(userSender.Message, actualUser.DesKey);
+
+                            Startup.userMsgBox[actualUser.ChatUserId] += "<div class='avatar'>" +
+                                                        "<img src = '" + userSender.User.Avatar + "' alt='User name'>" +
+                                                        "<div class='status " + userSender.User.Status + "'></div>" +
+                                                    "</div>" +
+                                                        "<div class='text'>" +
+                                                            "<div class='media-heading'>" + userSender.User.UserName + "</div>" +
+                                                            messageDecrypted +
+                                                            "<p class='speech-time'>" +
+                                                                "<i class='fa fa-clock-o fa-fw'></i> " + DateTime.Now.ToString("HH:mm:ss") +
+                                                            "</p>" +
                                                         "</div>" +
-                                                            "<div class='text'>" +
-                                                                "<div class='media-heading'>" + userSender.User.UserName + "</div>" +
-                                                                userSender.Message +
-                                                                "<p class='speech-time'>" +
-                                                                    "<i class='fa fa-clock-o fa-fw'></i> " + DateTime.Now.ToString("HH:mm:ss") +
-                                                                "</p>" +
-                                                            "</div>" +
-                                                    "</div>";
-                                break;
-                        }
-                        MsgHtml = Program.userMsgBox[actualUser.ChatUserId];
-                        return RedirectToPage();
+                                                "</div>";
+
+                            break;
                     }
+                    MsgHtml = Startup.userMsgBox[actualUser.ChatUserId];
+
+                    return Page();
                 }
             }
+        }
+
+        public static byte[] Encrypt(string source, byte[] key)
+        {
+            TripleDESCryptoServiceProvider desCryptoProvider = new TripleDESCryptoServiceProvider();
+            MD5CryptoServiceProvider hashMD5Provider = new MD5CryptoServiceProvider();
+
+            byte[] byteHash;
+            byte[] byteBuff;
+
+            byteHash = key;
+            desCryptoProvider.Key = byteHash;
+            desCryptoProvider.Mode = CipherMode.ECB; //CBC, CFB
+            byteBuff = Encoding.UTF8.GetBytes(source);
+
+            byte[] encoded = desCryptoProvider.CreateEncryptor().TransformFinalBlock(byteBuff, 0, byteBuff.Length);
+            return encoded;
+        }
+
+        public static string Decrypt(byte[] encodedText, byte[] key)
+        {
+            TripleDESCryptoServiceProvider desCryptoProvider = new TripleDESCryptoServiceProvider();
+            MD5CryptoServiceProvider hashMD5Provider = new MD5CryptoServiceProvider();
+
+            byte[] byteHash;
+            byte[] byteBuff;
+
+            byteHash = key;
+            desCryptoProvider.Key = byteHash;
+            desCryptoProvider.Mode = CipherMode.ECB; //CBC, CFB
+            byteBuff = encodedText;
+
+            string plaintext = Encoding.UTF8.GetString(desCryptoProvider.CreateDecryptor().TransformFinalBlock(byteBuff, 0, byteBuff.Length));
+            return plaintext;
         }
     }
 }

@@ -9,11 +9,18 @@ using LeobasChat.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System;
 using LeobasChat.Pages.ChatRooms;
+using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace LeobasChat
 {
     public class Startup
     {
+        public static Dictionary<int, TcpClient> clients = new Dictionary<int, TcpClient>();
+        public static Dictionary<int, string> userMsgBox = new Dictionary<int, string>();
+        public static Task ReceiveEvent;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -26,11 +33,6 @@ namespace LeobasChat
         {
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-
-            services.AddDbContext<ChatDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-
-
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -101,11 +103,14 @@ namespace LeobasChat
                 app.UseExceptionHandler("/Error");
             }
 
+
+
             app.UseStaticFiles();
 
             app.UseAuthentication();
 
             app.UseMvc();
         }
+
     }
 }

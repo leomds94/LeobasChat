@@ -15,6 +15,6 @@ namespace LeobasChat.Data
 
         public string Mood { get; set; }
 
-        //public List<ChatUser> EnteredChats { get; set; }
+        public List<ApplicationUser> ChatUsers { get; set; }
     }
 }
